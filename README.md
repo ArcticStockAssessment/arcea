@@ -1,4 +1,4 @@
-# arcea
+# arcea <img src="man/figures/logo.png" align="right" height="138" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/ArcticStockAssessment/arcea/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ArcticStockAssessment/arcea/actions/workflows/R-CMD-check.yaml)
