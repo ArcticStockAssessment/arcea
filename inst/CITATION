@@ -1,0 +1,11 @@
+citHeader("To cite arcea in publications please use:")
+
+# Based on sdmTMB, DESCRIPTION approach wouldn't include a year.
+bibentry(
+  bibtype = "misc",
+  title = "arcea: An R package of Arctic ecosystem information to help facilitate an ecosystem approach to fisheries management",
+  author =
+    "A. M. Edwards and J. Tam and K. J. Hedges and S. Fulton",
+  url = "https://github.com/",
+  year = "2026"
+)
