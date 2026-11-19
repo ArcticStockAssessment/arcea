@@ -1,4 +1,15 @@
-# generate a function to plot biomass data for arcea arcea_biomass objects
+#' Plot ARCEA Biomass Data
+#'
+#' Creates a plot of ARCEA biomass data, displaying the biomass index
+#' over time using points and lines.
+#'
+#' @param x An object of class `arcea_biomass`.
+#' @param ... Additional arguments passed to [ggplot2::geom_point()] and
+#'   [ggplot2::geom_line()].
+#'
+#' @return A ggplot object displaying the biomass index over time.
+#'
+#' @export
 plot.arcea_biomass <- function(x, ...){
   # x is an arcea_biomass object
   # ... are additional arguments to pass to ggplot2::geom_point() and geom_line()
