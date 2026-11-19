@@ -3,7 +3,7 @@ test_that("multiplication works", {
 })
 
 test_that("plot_arcea_biomass works", {
-  expect_silent(plot.arcea_biomass(greenland_halibut_biomass))
+  expect_true(ggplot2::is_ggplot(plot(greenland_halibut_biomass)))
 })
 
 # test that a non arcea_biomass object throws an error
