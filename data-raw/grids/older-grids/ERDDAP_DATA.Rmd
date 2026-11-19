@@ -1,0 +1,227 @@
+---
+title: "Obtain Satellite Data From NOAA's ERDDAP"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Downloading the Latest Monthly Satellite (Remote-Sensing) Data from ERDDAP
+
+This was Joe's testing some ideas. Think we should now use Andrea Hilborn's website, as it's
+already been wrangled somewhat.
+
+This markdown document shows how remote-sensed satellite data, collected by NOAA and hosted on ERDDAP, are compiled into PACea.
+
+Note that there are a LOT of datasets available on ERDDAP. To search the entire catalogue, visit this page: <https://coastwatch.pfeg.noaa.gov/erddap/griddap/index.html?page=1&itemsPerPage=1000>. The column titled `Dataset ID` is crucial.
+
+First we download the remote-sensing datasets from erddap. Then we map to the cells defining the BC grid. We compute the spatial average to do the mapping onto the polygons and record the spatial fraction of missing values per grid cell too.
+
+```{r download data}
+library(dplyr)
+
+dataset_commonname <-
+  c('SST_Monthly_MODIS',
+    'CHLA_Monthly_MODIS')
+
+# These are the names of the datasets within ERDDAP
+dataset_ids <-
+  c('erdMBsstdmday_LonPM180', # SST MONTHLY MODIS
+    'erdMBchlamday_LonPM180') # CHLA MONTHLY MODIS
+
+# When did the data go online?
+dataset_startdates <-
+  c('2006-01-17',
+    '2006-01-17')
+
+# strides 'keep' only every kth value to save space
+dataset_strides <-
+  matrix(
+  c(1,4,4,1, # keep every month, every 4th lon/lat and every var
+    1,4,4,1),
+  ncol=4, byrow=T)
+
+# character of variable name stored in data
+dataset_char <-
+  c(
+    as.character(rerddap::info(dataset_ids[1])$variables[1]),
+    as.character(rerddap::info(dataset_ids[2])$variables[1])
+  )
+
+
+Coastline_lonlat <-
+  sf::st_transform(
+  sf::st_as_sf(PACea::Coastline),
+  crs=sf::st_crs('EPSG:4326')
+  )
+
+# subtract the date by 1 month to make sure enough time has been allowed to update the satellite data
+current_date <- as.character(lubridate::ymd(Sys.Date())-lubridate::period(1, units='month'))
+
+# read in BC Grid
+BC_Partition_Objects <- PACea::BC_Partition_Objects
+
+# compute the mean values per grid cell - keep only 'BC Grid'   # Andy: seems
+# better to have BC_Grid as it's own thing for this purpose. Could call each one **_partition.
+Partition_Polys <- BC_Partition_Objects$BC_Partition[
+  BC_Partition_Objects$BC_Partition$Regions_Name=='BC Grid',]
+
+data_years <- vector('list', length(dataset_ids))
+data_months <- vector('list', length(dataset_ids))
+
+# Create an empty data.frame object for storing the aggregated data
+nyear=length(min(lubridate::year(dataset_startdates)):lubridate::year(lubridate::ymd(Sys.Date())-lubridate::period(1, units='month')))
+nmonth=12
+npoly=length(Partition_Polys$Regions_Name)
+ncovs=length(dataset_ids)
+
+Partition_df <-
+  expand.grid(Poly_ID=1:npoly,
+             Covariate=dataset_char,
+             Year=min(lubridate::year(dataset_startdates)):lubridate::year(lubridate::ymd(Sys.Date())-lubridate::period(1, units='month')),
+             Month=1:12,
+             Mean=NA,
+             Fraction_NA=1
+  )
+
+# loop through the ERDDAP datasets
+# for (i in 1:length(dataset_ids))
+i = 1   # just want one for developing
+{
+  print(paste0('currently downloading covariate ', dataset_char[i], ' from ERDDAP Database'))
+
+  # Download the dataset
+  dataset_list <-
+    rerddap::griddap(
+      x=rerddap::info(datasetid = dataset_ids[i]),
+      time=c(dataset_startdates[i], current_date),
+      latitude=sf::st_bbox(Coastline_lonlat)[c(2,4)],
+      longitude=sf::st_bbox(Coastline_lonlat)[c(1,3)],
+      stride = dataset_strides[i,]
+    )$data
+
+    print(paste0('Finished downloading covariate ', dataset_char[i], ' from ERDDAP Database'))
+
+  # Convert to wide format for efficiency
+  dataset_list <-
+    dataset_list %>%
+    tidyr::pivot_wider(
+      id_cols = c(lat,lon),
+      names_from = time,
+      values_from = dataset_char[i])
+
+
+  # Convert these dataframes to raster objects
+  dataset_list <-
+    raster::brick(
+      sp::SpatialPixelsDataFrame(
+        points=dataset_list[,c('lon','lat')],
+        data=data.frame(dataset_list[,-c(1,2)])
+      )
+    )
+
+  # THESE ARE THE IMPORTANT LINES
+  # project onto correct CRS using bilinear interpolation
+  raster::crs(dataset_list) <-
+    raster::crs('EPSG:4326')   # standard for ERDDAP
+
+  dataset_list <-
+    raster::projectRaster(
+      dataset_list,
+      crs = PACea::Coastline@proj4string
+    )
+
+  data_years[[i]] <- as.numeric(substr(names(dataset_list),2,5))
+  data_months[[i]] <- as.numeric(substr(names(dataset_list),7,8))
+
+  # Loop through the years and months map to grid - save memory this way
+for(j in min(data_years[[i]]):max(data_years[[i]]))
+{
+  print(paste0('Currently processing year ',j))
+
+    for(k in 1:12)
+    {
+      # Find the corresponding column in the raster data
+    raster_ind <- which(data_years[[i]]==j &
+                          data_months[[i]] == k)
+
+    if(length(raster_ind)>0)
+    {
+      Partition_df <-
+        Partition_df %>%
+        dplyr::filter() %>%
+        dplyr::mutate(Mean =
+                 ifelse(Month==k & Year==j & Covariate==dataset_char[i],
+                        exactextractr::exact_extract(
+                          dataset_list[[raster_ind]],
+                          Partition_Polys,
+                          fun='mean'
+                        ), Mean),
+                       Fraction_NA =
+                   ifelse(Month==k & Year==j & Covariate==dataset_char[i],
+                     exactextractr::exact_extract(
+                        dataset_list[[raster_ind]],
+                        Partition_Polys,
+                        fun=function(value,cov_frac){
+                          1-sum(cov_frac*!is.na(value))/sum(cov_frac)
+                          }
+                        ), Fraction_NA),
+                 Fraction_NA = ifelse(is.na(Fraction_NA),1,Fraction_NA)
+        )
+    }
+
+    }
+    print(paste0('successfully mapped year ',j,' to polygons'))
+
+}
+
+  print(paste0('successfully processed covariate ', dataset_char[i]))
+  rm(dataset_list)
+}
+
+## MAKE SURE THE AGGREGATED VARIABLES ARE IN NUMERIC FORMAT NOT A LIST!
+View(Partition_df[sapply(Partition_df$Mean,length)>1,])
+
+Partition_df$Mean[sapply(Partition_df$Mean,length)>1] <-
+  NA
+
+Partition_df$Mean <- as.numeric(do.call('c',Partition_df$Mean))
+
+# Convert to wide format with a column per species
+ERDDAP_DF <-
+  Partition_df %>%
+  tidyr::pivot_wider(
+    id_cols = c(Year, Month, Poly_ID),
+    names_from = c(Covariate),
+    values_from = c(Mean, Fraction_NA)
+  )
+
+usethis::use_data(ERDDAP_DF, overwrite = T)
+
+# save the data key, pointing the common names of the datasets to the correct DF
+# data_key <-
+#   data.frame(
+#     Common_Name = dataset_commonname,
+#     DF_Name = 'ERDDAP_DF',
+#     Time_Resolution = 'Monthly',
+#     Data_Type = 'Remote-Sensed Raster',
+#     Units = c('Degrees Celsius',
+#               'mg m-3'),
+#     Author = 'NOAA', # Need to update uniquely for each dataset
+#     Citation = NA, # Need to update for each dataset
+#     Comments = '' # Maybe add a link to the ERDDAP data page
+#   )
+#
+# # append to the master Data_Key and remove duplicates
+# Data_Key <-
+#   rbind(PACea::Data_Key,
+#         data_key)
+#
+# Data_Key <-
+#   Data_Key[!duplicated(Data_Key),]
+#
+# # Update the master key
+# usethis::use_data(Data_Key, overwrite=T)
+
+```
