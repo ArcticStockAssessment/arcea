@@ -10,11 +10,6 @@ library(CopernicusMarine)
 # library CopernicusMarine is required but may not be available through CRAN
 # install.packages("CopernicusMarine", repos = c('https://pepijn-devries.r-universe.dev', 'https://cloud.r-project.org'))
 
-# username <- Sys.getenv("CMEMS_USERNAME")
-# password <- Sys.getenv("CMEMS_PASSWORD")
-# my_ds    <- "cmems_mod_glo_phy_my_0.083deg_P1M-m"
-# myint_ds <- "cmems_mod_glo_phy_myint_0.083deg_P1M-m"
-
 #Smaller extent for testing
 lonmin <- -80; lonmax <- -50
 latmin <- 50;  latmax <- 83.5
@@ -39,42 +34,7 @@ my_data <-
     progress      = FALSE
   )
 
-# reticulate::use_virtualenv("CopernicusMarine", required = TRUE)
-# cmt <- reticulate::import("copernicusmarine")
-# cmt$login(username, password)
-# sf_use_s2(FALSE)
-# all_long <- list()
-# # Create temporary file for download
-# temp_nc1 <- tempfile(fileext = ".nc")
-
-# Download data
-# cmt$subset(
-#   dataset_id = "cmems_mod_glo_phy_my_0.083deg_P1M-m",
-#   variables = list("bottomT"),
-#   minimum_longitude = lonmin,
-#   maximum_longitude = lonmax,
-#   minimum_latitude = latmin,
-#   maximum_latitude = latmax,
-#   start_datetime = paste0(start10, "T00:00:00"),
-#   end_datetime = paste0(end10,   "T23:59:59"),
-#   output_directory = dirname(temp_nc1),
-#   output_filename = basename(temp_nc1)
-# )
-
-# temp_nc2 <- tempfile(fileext = ".nc")
-#
-# cmt$subset(
-#   dataset_id = "cmems_mod_glo_phy_myint_0.083deg_P1M-m",
-#   variables = list("bottomT"),
-#   minimum_longitude = lonmin,
-#   maximum_longitude = lonmax,
-#   minimum_latitude = latmin,
-#   maximum_latitude = latmax,
-#   start_datetime = paste0(start10, "T00:00:00"),
-#   end_datetime = paste0(end10,   "T23:59:59"),
-#   output_directory = dirname(temp_nc2),
-#   output_filename = basename(temp_nc2)
-# )
+plot(my_data["bottomT", drop = TRUE], col = hcl.colors(100), axes = TRUE)
 
 clean_glorys_nc <- function(nc_file, var_name = "bottomT", digits = 6) {
   # Disable spherical geometry for sf operations
@@ -121,9 +81,6 @@ clean_glorys_nc <- function(nc_file, var_name = "bottomT", digits = 6) {
 }
 
 df <- clean_glorys_nc(my_data, var_name = "bottomT")
-# df1 <- clean_glorys_nc(temp_nc1, var_name = "bottomT")
-# df2 <- clean_glorys_nc(temp_nc2, var_name = "bottomT")
-# df <- bind_rows(df1, df2)
 
 # add year and month columns
 df <- df %>%
@@ -137,28 +94,8 @@ attr(df,"region") <- "Northwest Atlantic"
 attr(df,"source") <- "Copernicus Marine Environment Monitoring Service (CMEMS)"
 attr(df,"time_descriptor") <- sprintf("Monthly data %s→%s", start10, end10)
 
-aug_data <- my_data["bottomT",month=8]
-plot(my_data["bottomT", drop = TRUE], col = hcl.colors(100), axes = TRUE)
-my_data["bottomT",month=1]
-
-#Create s4
-# glorys_bottom_temperature <- as_ea_st(
-#   x = df,
-#   value_col    = "value",
-#   data_type    = "Bottom Temperature",
-#   region       = "Canadian Arctic",
-#   time_descriptor = "monthly",
-#   units        = "degC",
-#   source_citation = "CMEMS Global Ocean Physics Reanalysis",
-#   temporal_coverage = sprintf("%s to %s", start10, end10),
-#   variable_name= "bottomT",
-#   dataset_id   = paste(my_ds, myint_ds, sep="; ")
-# )
-
 #Convert to tibble
 glorys_bottom_temperature <- as_tibble(df)
-
-plot(glorys_bottom_temperature["value", drop = TRUE], col = hcl.colors(100), axes = TRUE)
 
 usethis::use_data(glorys_bottom_temperature, overwrite=TRUE)
 message("Done: ", nrow(df), " records.")

@@ -1,4 +1,4 @@
-##' Create package data with one call. Taken from hake package.
+##' Create package data with one call. Taken from pacea hake package.
 ##'
 ##' Usually you have to create a variable first, and then call
 ##'  [usethis::use_data()] with the variable name as an argument and the
@@ -12,7 +12,7 @@
 ##' @return Nothing, creates package data. See `usethis::use_data()`.
 ##' @examples
 ##' \dontrun{
-##' In data-raw/groundfish/hake.R see these lines (which allow `assess_yr` to
+##' In pacea/data-raw/groundfish/hake.R see these lines (which allow `assess_yr` to
 #'   part of the data object, which `use_data()` does not):
 ##'  create_data(paste0("hake_recruitment_", assess_yr),
 ##'              get(paste0("hake_recruitment_", assess_yr)))
