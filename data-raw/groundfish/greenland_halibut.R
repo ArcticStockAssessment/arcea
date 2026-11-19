@@ -4,6 +4,7 @@
 #  each second year.
 
 # load_all()
+library(tidyverse)
 assess_yr <- 2025       # Year of the hake assessment; update each year
 
 # The greenland_halibut_biomass35-2024/*.rds files are built automatically from (Kevin)
@@ -20,8 +21,9 @@ assess_yr <- 2025       # Year of the hake assessment; update each year
 greenland_halibut_biomass <- tibble::as_tibble(read.csv("~/GitHub/arcea/data-raw/groundfish/greenland_halibut.csv")) %>%
   select(Year,Index, Index.CV)
 
-# class(greeland_halibut_biomass35_new) <- c("pacea_biomass",
-#                              class(hake_biomass_new))
+# change class to arcea_biomass so that plot() works with it
+class(greenland_halibut_biomass) <- c("arcea_biomass",
+                             class(greenland_halibut_biomass))
 
 attr(greenland_halibut_biomass, "axis_name") <-
   "Greenland Halibut fishable biomass (million t)"
