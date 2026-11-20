@@ -19,10 +19,10 @@ Generated from running \code{data-raw/groundfish/greenland_halibut_biomass.R}.
 greenland_halibut_biomass
 }
 \description{
-Subtitle of dataset
+Description of dataset
 }
 \details{
-Write description of dataset.
+Write details of dataset.
 }
 \examples{
 \dontrun{
