@@ -10,7 +10,7 @@
 \item{x}{An object of class \code{arcea_biomass}.}
 
 \item{...}{Additional arguments passed to \code{\link[ggplot2:geom_point]{ggplot2::geom_point()}} and
-\code{\link[ggplot2:geom_path]{ggplot2::geom_line()}}.}
+\code{\link[ggplot2:geom_line]{ggplot2::geom_line()}}.}
 }
 \value{
 A ggplot object displaying the biomass index over time.

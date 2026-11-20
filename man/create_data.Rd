@@ -2,7 +2,7 @@
 % Please edit documentation in R/create-data.R
 \name{create_data}
 \alias{create_data}
-\title{Create package data with one call. Taken from hake package.}
+\title{Create package data with one call. Taken from pacea hake package.}
 \usage{
 create_data(var, val)
 }
@@ -24,7 +24,7 @@ will work for any data object. See \code{data-raw/groundfish/hake.R} for example
 }
 \examples{
 \dontrun{
-In data-raw/groundfish/hake.R see these lines (which allow `assess_yr` to
+In pacea/data-raw/groundfish/hake.R see these lines (which allow `assess_yr` to
   part of the data object, which `use_data()` does not):
  create_data(paste0("hake_recruitment_", assess_yr),
              get(paste0("hake_recruitment_", assess_yr)))
